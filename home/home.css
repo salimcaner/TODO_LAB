@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
+
+:root{
+    --text-color: #eaf2ef;
+    --background-color: #912f56;
+    --font-family: "Nunito", sans-serif;
+    text-decoration: none;
+    list-style: none;
+}
+
+/*Body styles*/
+body{
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    font-family: var(--font-family);
+    transition: margin-left 0.3s ease;
+}
+
+/*SOL AÇILIR MENÜ*/
+.menu{
+    background-color: var(--text-color);
+    color: var(--background-color);
+    height: 100vh; /*tüm ekranı kapla*/
+    width: 200px; /*açık menu*/
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-x: hidden;
+    transition: width 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px var(--text-color);
+}
+
+.menu-header{
+    padding: 10px 0px;
+}
+
+.toggle-btn{
+    background: none;
+    color: var(--background-color);
+    border: none;
+    font-size: 28px;
+    /*Elementin bir link, buton, ya da tıklanabilir bir alan olduğunu kullanıcıya gösterir.*/
+    cursor: pointer;
+    padding: 5px;
+}
+
+.top-menu , .under-menu{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.under-menu{
+    margin-top: auto; /*en alta sabitler*/
+    padding-bottom: 20px;
+}
+
+.top-menu li a, .under-menu li a{
+    display: flex; /*metin ve ikonu ayırmak için*/
+    justify-content: space-between; /*birini sola birini sağa*/
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--background-color);
+    text-decoration: none;
+    font-size: 20px;
+    white-space: nowrap; /*metinlerin alta kaymasını engeller*/
+} 
+.top-menu li a:hover, .under-menu li a:hover{
+    background-color: var(--background-color);
+    color: var(--text-color);
+    box-shadow: 0 0 20px var(--background-color);
+}
+
+.link-text{
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.main-content{
+    margin-left: 250px;
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+}
+/*menü kapatıldığında*/
+body.sidebar-closed .menu{
+    width: 50px;
+}
+
+body.sidebar-closed .main-content{
+    margin-left: 50px;
+}
+
+/*menu kapalıyken içerik gizleme*/
+body.sidebar-closed .top-menu li a,
+body.sidebar-closed .under-menu li a,
+body.sidebar-closed .link-text{
+    opacity: 0;
+    visibility: hidden;
+}
+
+body.sidebar-closed .menu-header{
+    padding: 10px 0px;
+    text-align: center;
+}
+
+/*ANA İÇERİK*/
+
+.main-content{
+    position: relative;
+    width: 850px;
+    height: 650px;
+    background-color: var(--text-color);
+    color: var(--background-color);
+    margin: 20px;
+    border-radius: 20%;
+    box-shadow: 0 0 30px var(--text-color);
+    overflow-x: hidden; /*yatayda taşan içeriği gizler*/
+    overflow-y: auto; /*dikeyde taşan içeriği aşağı kaydırır.*/
+    
+}
