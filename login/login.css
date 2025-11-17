@@ -15,7 +15,7 @@
 
 /*Body styles*/
 body{
-    background: url(/picture_login/backgroun-login.jpg);
+    background: url(/login/picture_login/backgroun-login.jpg);
     color: var(--text-color);
     background-repeat: no-repeat;
     background-size: cover;
