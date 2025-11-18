@@ -41,7 +41,7 @@
     </div>
 
     <!-- Ana içerik -->
-    <main class="main-content">
+    <div class="main-content">
         <div class="box-1">
             <div class="First">
                 <a href="../home/home.html">Görev Ekle</a>
@@ -51,17 +51,21 @@
             </div>
             <div class="Third">
                 <a href="#">Takvim</a>
-    
             </div>
         </div>
         <div class="box-2">
             <h1>LİSTEM</h1>
-            <form class="frmGorev">
-                <input type="text" placeholder="Yeni Görev Ekle" class="text" required>
-                <button class="btn" type="submit">Görev Ekle</button>   
-            </form>
+            <div class="gorev_liste">
+                <ul class="gorevlistesi">
+
+                </ul>
+            </div>
+            <div class="Gorev_ekle">
+                <input type="text" class="gorevtext" placeholder="Yeni Görev Ekle"  required>
+                <button class="goreveklebtn" type="submit">Görev Ekle</button>   
+            </div>
         </div>
-    </main>
+    </div>
 
     <script src="home.js"></script>
 </body>
