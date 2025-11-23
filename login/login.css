@@ -6,38 +6,41 @@
 }
 
 :root{
-    --text-color: #eaf2ef;
-    --background-color: #912f56;
+    --text-color: #FAE9EC;
+    --background-color: #351544;;
     --font-family: "Nunito", sans-serif;
     text-decoration: none;
     list-style: none;
+    --background: url(picture_login/form_background.png);
 }
 
 /*Body styles*/
 body{
-    background: url(../login/picture_login/backgroun-login.jpg);
-    color: var(--text-color);
-    background-repeat: no-repeat;
-    background-size: cover;
+    background: var(--background);
+    background-size: cover; /* Resmin tüm alanı kaplaması için */
+    background-position: center center; /* Resmi ortala */
+    background-repeat: no-repeat; /* Resmin tekrarlanmaması için */
     background-attachment: fixed;
-    background-position: center center;
+    color: var(--text-color);
     font-family: var(--font-family);
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;    
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;  
 }
 
 /*Container*/
 .container{
     position: relative;
-    width: 850px;
-    height: 550px;
-    background-color:#eaf2ef ;
-    color: #912f56;
-    margin: 20px;
-    border-radius: 30px;
-    box-shadow: 0 0 30px #eaf2ef;
+    width: 100%; /* 850px yerine */
+    height: 100vh; /* 550px yerine */
+    background: transparent;
+    color: var(--background-color);
+    margin: 0; /* 20px yerine */
+    border-radius: 0; /* 30px yerine - köşeleri kaldırmak için */
+    box-shadow: none; /* 0 0 30px var(--text-color); yerine */
     overflow: hidden;
 }
 
@@ -60,10 +63,10 @@ form{
     right: 0;
     width: 50%;
     height: 100%;
-    background-color: #eaf2ef;
+    background: transparent;
     display: flex;
     align-items: center;
-    color: #912f56;
+    color: var(--background-color);
     padding: 40px;
     z-index: 1;
     transition: 0.6s ease-in-out 1.2s, visibility 0s 1s;
@@ -76,119 +79,181 @@ form{
 
 .form-box.register{
     visibility: hidden;
+    right: -50%;
 }
 
 .container.active .form-box.register{
     visibility: visible;
+    right: 50%; 
 }
+.container.active .form-box.login{
+    right: -50%; /* Active olduğunda login form'u dışarı çıksın */
+}
+
 
 .input-box{
     position: relative;
-    margin: 30px 0;
+    margin: 20px 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
 }
 
 .input-box input{
     font-size: 16px;
-    padding: 10px 10px 10px 5px;
+    padding: 12px 45px 12px 40px; /* Sol tarafta ikon için, sağ tarafta checkbox için boşluk */
     display: block;
-    width: 200px;
+    width: 100%;
+    max-width: 300px;
     outline: none;
-    border: none;
-    border-bottom: 1px solid #912f56;
+    border: 1px solid var(--background-color);
+    border-radius: 8px;
     background: transparent;
+    color: var(--background-color);
 }
 
-.input-box label{
-    position: absolute;
-    left: 5px;
-    top: 10px;
+.input-box input::placeholder {
+    color: var(--background-color);
+    opacity: 1;
 }
 
-.input-box input:focus~label{
-    top: -20px;
-    font-size: 14px;
-    color: #912f56;
-}
-
-.input-box input:not(:placeholder-shown)~label{
-    top: -20px;
-    font-size: 14px;
-    color: #912f56;
-
-}
 .input-box input:focus{
-   border-width: 2px;
-    border-bottom-color: #912f56;
+    border-color: var(--background-color);
+    box-shadow: 0 0 0 2px var(--background-color);
 }
+
 .input-box i{
     position: absolute;
-    right: 20px;
+    left: calc(50% - 150px + 15px); /* Input'un sol tarafına hizala */
     top: 50%;
     transform: translateY(-50%);
-    font-size: 20px;
+    font-size: 18px;
+    color: var(--background-color);
+    pointer-events: none;
+}
+
+/* Şifre input'u için checkbox'ı ekle */
+.input-box:has(input[type="password"]) .checkbox {
+    position: absolute;
+    right: calc(50% - 150px + 15px); /* Input'un en sağına */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
 }
 
 .checkbox{
     position: absolute;
-    right: 20px;
+    right: calc(50% - 150px + 15px); /* Input'un en sağına */
     top: 50%;
     transform: translateY(-50%);
-    font-size: 20px;
+    z-index: 3;
 }
+
+.checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--background-color);
+    border-radius: 50%;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+.checkbox input[type="checkbox"]:checked {
+    background-color: var(--background-color);
+    border-color: var(--background-color);
+}
+
+.checkbox input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+
 .forgot-link{
-    margin: -15px 0 15px;
+    margin: -10px 0 20px;
+    text-align: right; /* Sağa hizalama */
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
 }
+
 .forgot-link a{
-    font-size: 14.5px;
-    color: #912f56;
+    font-size: 14px;
+    color: var(--background-color);
     text-decoration: none;
 }
+
 .forgot-link a:hover{
-    color: #eaf2ef;
-    background-color: #912f56;
-    font-size: 14px;
-    border-radius: 5px;
-    margin: 5px;
+    text-decoration: underline;
 }
 
 .btn{
     width: 100%;
+    max-width: 300px; /* Input ile aynı genişlik */
     height: 48px;
-    background-color: #912f56;
-    color: #eaf2ef;
+    background-color: var(--background-color);
+    color: var(--text-color);
     border: none;
     outline: none;
     cursor: pointer;
-    border-radius: 12px;
+    border-radius: 8px; /* Yuvarlak köşeler */
     font-size: 16px;
     font-weight: 600;
     font-family: var(--font-family);
+    margin: 0 auto; /* Ortala */
+    display: block;
 }
 
 .btn:hover{
-    box-shadow: 0 0 20px #912f56;
+    opacity: 0.9;
+    transform: translateY(-1px);
+    transition: all 0.2s;
 }
 
 .social-icons{
     display: flex;
     justify-content: center;
+    gap: 12px; /* İkonlar arası boşluk */
+    margin-top: 10px;
 }
 
 .social-icons a{
     display: inline-flex;
-    padding: 10px;
-    border: 2px solid #912f56;
-    color: #912f56;
-    margin: 0 16px;
-    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    width: 45px; /* Kare şekil */
+    height: 45px;
+    border: 1px solid var(--background-color);
+    color: var(--background-color);
+    border-radius: 8px; /* Yuvarlak köşeler */
     text-decoration: none;
+    transition: all 0.2s;
 }
 
 .social-icons a:hover{
-    background-color: #912f56;
-    color: #eaf2ef;
-    box-shadow: 0 0 20px #912f56;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
 
+.social-icons a i {
+    font-size: 20px;
 }
 
 .toggle-box{
@@ -203,7 +268,7 @@ form{
     left: -250%;
     width: 300%;
     height: 100%;
-    background-color: #912f56;
+    background-color: var(--background-color);
     border-radius: 150px;
     z-index: 2;
     transition: 1.8s ease-in-out;
@@ -213,17 +278,29 @@ form{
     left: 50%;
 }
 
+
 .toggle-panel{
     position: absolute;
     width: 50%;
     height: 100%;
-    color: #eaf2ef;
+    color: var(--text-color);
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: center; /* center yerine - içeriği alta hizalamak için */
     align-items: center;
     z-index: 2;
     transition: 0.6s ease-in-out;
+}
+
+.toggle-panel .mascot-image {
+    width: 600px; /* İstediğiniz boyuta göre ayarlayın */
+    height: auto;
+    margin-bottom: 20px; /* Maskot ile yazılar arası boşluk */
+    object-fit: contain;
+    filter: drop-shadow(0 0 5px #9438BD) 
+            drop-shadow(0 0 15px #9438BD)
+            drop-shadow(0 0 25px #9438BD);
+
 }
 
 .toggle-panel.toggle-left{
@@ -254,7 +331,6 @@ form{
     width: 160px;
     height: 46px;
     background: transparent;
-    border: 2px solid #eaf2ef;
+    border: 2px solid var(--text-color);
     box-shadow: none;
 }
-
