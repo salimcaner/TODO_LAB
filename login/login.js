@@ -92,7 +92,7 @@ loginForm.addEventListener('submit', async (e) => {
             console.log("Giriş başarılı! ID Token:", data.idToken);
             
             // Token'ı localStorage'a kaydet
-            localStorage.setItem('firebaseIdToken', data.idToken);
+            localStorage.setItem('token', data.idToken);
 
             alert("Giriş başarıyla yapıldı!");
             loginEmail.value = ''; // Inputları temizle
