@@ -5,32 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="home.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-    <title>Home</title>
+    
+    <title>Ana Sayfa</title>
 </head>
 <body class="sidebar-closed">
-    <!-- menubar -->
+
+<!-- menubar -->
     <div class="menu">
         <div class="menu-header">
-            <button class="toggle-btn">
+            <button class="toggle-btn" title="Menüyü Gizle/Göster">
                 <i class="fa-solid fa-bars"></i>
             </button>
         </div>
         <ul class="top-menu">
             <li>
                 <a href="#">
-                    <span class="link-text">Profil</span> 
-                    <i class="fa-regular fa-circle-user"></i>
+                    <span class="link-text">Tüm Görevler</span> 
+                    <i class="fas fa-th-large card-icon-blue"></i>
                 </a>
             </li>
             <li>
-                <a href="#">
-                    <span class="link-text">Ana Sayfa</span> 
-                    <i class="fa-regular fa-house"></i>
+                 <a href="#">
+                    <span class="link-text">Takvim</span>                    
+                    <i class="fa-solid fa-calendar-days"></i>
                 </a>
-            </li>            
+            </li> 
+            <li>
+                 <a href="#">
+                    <span class="link-text">Listem</span> 
+                    <i class="fa-solid fa-list-check"></i>
+                </a>
+            </li>  
+            <li>
+                 <a href="#">
+                    <span class="link-text">AI</span> 
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </a>
+            </li>             
         </ul>
         <ul class="under-menu">
+            <hr>
             <li>
                 <a href="#">
                     <span class="link-text">Ayarlar</span> 
@@ -39,37 +53,70 @@
             </li>
         </ul>
     </div>
+        <!-- ÜST NAVİGASYON ÇUBUĞU -->
+        <header class ="fixed-top">
+            <div class ="navbar">
+                <div class="nav_left">
+                    <h1 class="project-title">Proje Adı</h1>
+                </div>
+                <div class="nav_right">
+                    <button class="icon-btn" title="Bildirimler">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="icon-btn" title="Profil">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
 
-    <!-- Ana içerik -->
-    <div class="main-content">
-        <div class="box-1">
-            <div class="First">
-                <a href="../home/home.html">Görev Ekle</a>
-            </div>
-            <div class="Second">
-                <a href="#">Tüm Görevler</a>
-            </div>
-            <div class="Third">
-                <a href="#">Takvim</a>
-            </div>
-        </div>
-        <div class="box-2">
-            <h1>LİSTEM</h1>
-            <div class="gorev_liste">
-                <ul class="gorevlistesi">
+        <!-- DASHBOARD İÇERİĞİ -->
+        <main class="dashboard-content">
+            <h2 class="welcome-text">Bugün ne yapmak istersin?</h2>
+            
+            <div class="dashboard-cards">
+                <!-- Kart 1: Tüm Görevler -->
+                <div class="card card-blue">
+                    <div class="card-icon-container">
+                        <i class="fas fa-th-large card-icon-blue"></i>
+                    </div>
+                    <span class="card-title">Tüm Görevler</span>
+                    <p class="card-description">Tüm görevlere göz atın</p>
+                </div>
 
-                </ul>
-            </div>
-            <div class="Gorev_ekle">
-                <input type="text" class="gorevtext" placeholder="Yeni Görev Ekle"  required>
-                <button class="goreveklebtn" type="submit">Görev Ekle</button>   
-            </div>
-            <div id="todoList" class="todo-list">
-            <!-- Todo'lar buraya yüklenecek -->
-        </div>
-        </div>
-    </div>
+                <!-- Kart 2: Takvim -->
+                <div class="card card-green">
+                    <div class="card-icon-container">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <span class="card-title">Takvim</span>
+                    <p class="card-description">Takvim görünümü</p>
+                </div>
 
+                <!-- Kart 3: AI -->
+                <div class="card card-orange">
+                    <div class="card-icon-container">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <span class="card-title">AI</span>
+                    <p class="card-description">Yapay zeka asistanı</p>
+                </div>
+            </div>
+            <div class="today-section">
+                <h2 class="today-date"></h2>
+                <h3 class="section-title">Bugünün Listesi</h3>
+                <div class="todo-list">
+                    <!--Bugünün görevleri buraya yüklenecek-->
+                </div>
+            </div>
+            <div class="add-task-container">
+                <button class="add-task-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>Yeni Görev Ekle</span>
+                </button>
+            </div>
+        </main>
+    
 
     <script src="home.js"></script>
 </body>
