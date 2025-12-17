@@ -1,31 +1,45 @@
-# 1. Gerekli kütüphaneleri ve modülleri import et
-import firebase_admin
-from firebase_admin import credentials, auth
-from fastapi import FastAPI, Request, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi import Depends
-import requests # requests kütüphanesini import et
-import json     # JSON işlemleri için import et
-
-# Firebase Web API Key'ini ortam değişkeninden al
+from pydantic import BaseModel
+from supabase import create_client, Client
+from dotenv import load_dotenv
 import os
-FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY", "AIzaSyArVmmEeBYNl55gDMno29_RbML03AmSqB0")
+import jwt
 
-class UserSchema(BaseModel):
-    email: str
-    password: str
+# .env dosyasını bul
+base_dir = os.path.dirname(__file__)
+project_root = os.path.join(base_dir, "..", "..")
+env_path_root = os.path.abspath(os.path.join(project_root, ".env"))
+env_path_local = os.path.abspath(os.path.join(base_dir, ".env"))
 
-# Login yanıtı için model (sadece idToken döneceğiz)
-class LoginResponseSchema(BaseModel):
-    idToken: str
+env_path = None
+if os.path.exists(env_path_root):
+    env_path = env_path_root
+elif os.path.exists(env_path_local):
+    env_path = env_path_local
 
-# 2. FastAPI uygulamasını oluştur
+# .env dosyasını yükle
+if env_path:
+    load_dotenv(env_path, override=True)
+else:
+    load_dotenv()
+
+# Environment değişkenlerini al
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+try:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        supabase = None
+    else:
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception:
+    supabase = None
+
+# FastAPI App
 app = FastAPI()
 
-# CORS ayarları (Mevcut kodun)
 origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
@@ -35,231 +49,274 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Firebase Admin SDK'sını başlat (Mevcut kodun)
-import os
-SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'fastapi-auth-project-411d4-firebase-adminsdk-fbsvc-f6714f210e.json')
-try:
-    cred = credentials.Certificate(SERVICE_ACCOUNT_FILE)
-    firebase_admin.initialize_app(cred)
-    print("Firebase Admin SDK başarıyla başlatıldı.")
-except Exception as e:
-    print(f"HATA: Firebase Admin SDK başlatılamadı! -> {e}")
-
-# Token doğrulama (Mevcut kodun)
-token_auth_scheme = HTTPBearer()
-def get_current_user(cred: HTTPAuthorizationCredentials = Depends(token_auth_scheme)):
-    if not cred:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Bearer token bulunamadı",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    try:
-        # Gelen token'ı Firebase'e gönderip doğruluğunu kontrol ediyoruz.
-        # cred bir HTTPAuthorizationCredentials nesnesi, token'ı almak için .credentials kullanılır.
-        token = cred.credentials
-        decoded_token = auth.verify_id_token(token)
-        # Token geçerliyse, içindeki kullanıcı bilgilerini (payload) döndürüyoruz.
-        return decoded_token
-    except Exception as e:
-        # Token geçersiz, süresi dolmuş veya başka bir hata varsa...
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Geçersiz token: {e}",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-# 4. Basit bir test endpoint'i (Mevcut kodun)
-@app.get("/")
-def read_root():
-    return {"message": "Merhaba! FastAPI ve Firebase sunucunuz çalışıyor."}
-
-# Signup endpoint'i (Mevcut kodun)
-@app.post("/signup", status_code=status.HTTP_201_CREATED)
-def create_user(user: UserSchema):
-    try:
-        new_user = auth.create_user(
-            email=user.email,
-            password=user.password
-        )
-        return {"message": "Kullanıcı başarıyla oluşturuldu","uid": new_user.uid}
-
-    except auth.EmailAlreadyExistsError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bu email adresi zaten kullanılıyor"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"HATA: Sunucu Hatası: {str(e)}"
-        )
-
-# YENİ LOGIN ENDPOINT'İ
-@app.post("/login", response_model=LoginResponseSchema)
-def login_user(user: UserSchema):
-    # Firebase Auth REST API endpoint URL'si
-    rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
-
-    # Gönderilecek veri (payload)
-    payload = json.dumps({
-        "email": user.email,
-        "password": user.password,
-        "returnSecureToken": True
-    })
-
-    # API isteği için parametreler (Web API Key)
-    params = {"key": FIREBASE_WEB_API_KEY}
-
-    try:
-        # Firebase REST API'sine POST isteği gönder
-        response = requests.post(rest_api_url, params=params, data=payload)
-        response.raise_for_status() # HTTP hata kodları için (4xx, 5xx) exception fırlat
-
-        # Başarılı yanıtı işle
-        result = response.json()
-        id_token = result.get("idToken")
-
-        if not id_token:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Firebase'den idToken alınamadı."
-            )
-
-        # Sadece idToken'ı döndür
-        return LoginResponseSchema(idToken=id_token)
-
-    except requests.exceptions.RequestException as e:
-        # Network hatası veya HTTP hata kodu varsa
-        try:
-            # Firebase'den gelen hata detayını almaya çalış
-            error_data = e.response.json()
-            error_message = error_data.get("error", {}).get("message", "Bilinmeyen Firebase hatası")
-            print(f"Firebase Auth Hatası: {error_message}") # Hata detayını logla
-
-            # Firebase hata mesajlarına göre özel durumlar
-            if "INVALID_PASSWORD" in error_message or "EMAIL_NOT_FOUND" in error_message or "INVALID_LOGIN_CREDENTIALS" in error_message:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="E-posta veya şifre hatalı."
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Giriş hatası: {error_message}"
-                )
-        except (ValueError, AttributeError):
-            # Yanıt JSON değilse veya response nesnesi yoksa
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"API isteği sırasında hata: {str(e)}"
-            )
-    except Exception as e:
-        # Diğer beklenmedik hatalar
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Beklenmedik bir sunucu hatası oluştu: {str(e)}"
-        )
-
-
+# Şemalar
 class UserSchema(BaseModel):
-    email:str
-    password:str
+    email: str
+    password: str
 
 class ForgotPasswordSchema(BaseModel):
-    email:str
+    email: str
 
 class LoginResponseSchema(BaseModel):
-    idToken:str
+    idToken: str
+
+class TodoSchema(BaseModel):
+    title: str
+    completed: bool = False
 
 
-# FORGOT PASSWORD ENDPOINT'İ
-@app.post("/forgot-password")
-def forgot_password(forgot_data: ForgotPasswordSchema):
-    """
-    Firebase'in şifre sıfırlama e-postası gönderme özelliğini kullanır.
-    """
-    # Firebase Auth REST API endpoint URL'si (şifre sıfırlama)
-    rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode"
-    
-    # Gönderilecek veri (payload)
-    payload = json.dumps({
-        "requestType": "PASSWORD_RESET",
-        "email": forgot_data.email
-    })
-    
-    # API isteği için parametreler (Web API Key)
-    params = {"key": FIREBASE_WEB_API_KEY}
+token_auth_scheme = HTTPBearer()
+
+
+def get_current_user(cred: HTTPAuthorizationCredentials = Depends(token_auth_scheme)):
+    """Bearer token'ı alır ve Supabase ile doğrular."""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+        
+    token = cred.credentials
+    try:
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        user_id = decoded.get("sub")
+        email = decoded.get("email")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token'da kullanıcı bilgisi bulunamadı")
+        
+        class User:
+            def __init__(self, id, email):
+                self.id = id
+                self.email = email
+        
+        return User(user_id, email)
+    except jwt.DecodeError:
+        raise HTTPException(status_code=401, detail="Token decode edilemedi")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Oturum hatası: {str(e)}")
+
+@app.get("/")
+def read_root():
+    return {"message": "Merhaba! FastAPI ve Supabase sunucunuz çalışıyor."}
+
+
+@app.post("/signup", status_code=status.HTTP_201_CREATED)
+def create_user(user: UserSchema):
+    if not supabase:
+        error_msg = "Supabase bağlantısı kurulamadı. "
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            error_msg += "Lütfen proje root dizininde .env dosyası oluşturup SUPABASE_URL ve SUPABASE_KEY değerlerini ekleyin. "
+            error_msg += "Detaylar için terminal çıktısını kontrol edin."
+        else:
+            error_msg += "Supabase client oluşturulurken bir hata oluştu. Terminal çıktısını kontrol edin."
+        raise HTTPException(status_code=500, detail=error_msg)
     
     try:
-        # Firebase REST API'sine POST isteği gönder
-        response = requests.post(rest_api_url, params=params, data=payload)
-        response.raise_for_status()  # HTTP hata kodları için exception fırlat
+        res = supabase.auth.sign_up({
+            "email": user.email,
+            "password": user.password,
+            "options": {
+                "email_redirect_to": None
+            }
+        })
         
-        # Başarılı yanıt
-        result = response.json()
+        if not res:
+            raise HTTPException(status_code=500, detail="Supabase'den yanıt alınamadı")
+        
+        if not res.user:
+            error_msg = "Kayıt başarısız"
+            if hasattr(res, 'message'):
+                error_msg = res.message
+            elif hasattr(res, 'error'):
+                error_msg = str(res.error)
+            elif hasattr(res, 'error_description'):
+                error_msg = res.error_description
+            raise HTTPException(status_code=400, detail=error_msg)
+        
         return {
-            "message": "Şifre sıfırlama e-postası başarıyla gönderildi.",
-            "email": forgot_data.email
+            "message": "Kullanıcı başarıyla oluşturuldu. Lütfen giriş yapın.",
+            "uid": res.user.id
         }
-        
-    except requests.exceptions.RequestException as e:
-        # Network hatası veya HTTP hata kodu varsa
-        try:
-            # Firebase'den gelen hata detayını almaya çalış
-            error_data = e.response.json()
-            error_message = error_data.get("error", {}).get("message", "Bilinmeyen Firebase hatası")
-            print(f"Firebase Forgot Password Hatası: {error_message}")
-            
-            # Firebase hata mesajlarına göre özel durumlar
-            if "EMAIL_NOT_FOUND" in error_message:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Bu e-posta adresi sistemde kayıtlı değil."
-                )
-            elif "INVALID_EMAIL" in error_message:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Geçersiz e-posta adresi."
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Şifre sıfırlama hatası: {error_message}"
-                )
-        except (ValueError, AttributeError):
-            # Yanıt JSON değilse veya response nesnesi yoksa
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"API isteği sırasında hata: {str(e)}"
-            )
+    except HTTPException:
+        raise
     except Exception as e:
-        # Diğer beklenmedik hatalar
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Beklenmedik bir sunucu hatası oluştu: {str(e)}"
-        )
+        error_detail = str(e)
+        error_lower = error_detail.lower()
+        if "already registered" in error_lower or "user already registered" in error_lower:
+            raise HTTPException(status_code=400, detail="Bu e-posta adresi zaten kullanılıyor.")
+        elif "invalid email" in error_lower or "email" in error_lower and "invalid" in error_lower:
+            raise HTTPException(status_code=400, detail="Geçersiz e-posta adresi.")
+        elif "password" in error_lower and ("weak" in error_lower or "short" in error_lower):
+            raise HTTPException(status_code=400, detail="Şifre çok zayıf. En az 6 karakter olmalıdır.")
+        elif "password" in error_lower:
+            raise HTTPException(status_code=400, detail=f"Şifre hatası: {error_detail}")
+        else:
+            raise HTTPException(status_code=400, detail=f"Kayıt hatası: {error_detail}")
+    
+# LOGIN
+@app.post("/login", response_model=LoginResponseSchema)
+def login_user(user: UserSchema):
+    if not supabase: 
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+    try:
+        res = supabase.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
+        
+        if not res:
+            raise HTTPException(status_code=500, detail="Supabase'den yanıt alınamadı")
+        
+        if not res.session or not res.session.access_token:
+            if res.user and not res.user.email_confirmed_at:
+                raise HTTPException(
+                    status_code=401, 
+                    detail="E-posta adresiniz doğrulanmamış. Lütfen e-postanızı kontrol edin veya kayıt olurken e-posta doğrulamasını atlayın."
+                )
+            raise HTTPException(status_code=401, detail="Giriş başarısız. Lütfen e-posta ve şifrenizi kontrol edin.")
+        
+        return {"idToken": res.session.access_token}
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_detail = str(e)
+        error_lower = error_detail.lower()
+        
+        if "invalid login credentials" in error_lower or "invalid credentials" in error_lower:
+            raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı.")
+        elif "email not confirmed" in error_lower or "email not verified" in error_lower:
+            raise HTTPException(status_code=401, detail="E-posta adresiniz doğrulanmamış. Lütfen e-postanızı kontrol edin.")
+        elif "user not found" in error_lower:
+            raise HTTPException(status_code=401, detail="Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.")
+        else:
+            raise HTTPException(status_code=401, detail=f"Giriş hatası: {error_detail}")
 
+# FORGOT PASSWORD
+@app.post("/forgot-password")
+def forgot_password(forgot_data: ForgotPasswordSchema):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+    try:
+        supabase.auth.reset_password_for_email(forgot_data.email)
+        return {
+            "message": "Şifre sıfırlama e-postası başarıyla gönderildi (Kullanıcının doğrulama yapması gerekir)."
+        }
+    except Exception:
+        raise HTTPException(status_code=400, detail="Şifre sıfırlama isteği gönderilemedi.")
 
-# /me endpoint'i (Mevcut kodun - İçeriğini token doğrulama için get_current_user'a göre ayarladım)
+# /me
 @app.get("/me")
-def get_user_profile(user_data: dict = Depends(get_current_user)):
-    """
-    Bu rota, geçerli bir Bearer token ile korunmaktadır.
-    Başarılı bir istekte, token'dan alınan kullanıcı bilgilerini döndürür.
-    """
-    # user_data, get_current_user fonksiyonundan dönen decoded_token'dır.
-    uid = user_data.get("uid")
-    email = user_data.get("email")
+def get_user_profile(user = Depends(get_current_user)):
+    return {
+        "message": f"Bu korumalı bir alandır. Hoş geldin {user.email}!",
+        "uid": user.id,
+        "email": user.email,
+    }
 
-    # Burada user_data içindeki diğer bilgilere de erişebilirsin (name, picture vb. varsa)
-    # Örneğin Firestore'dan bu UID'ye ait ek kullanıcı profil bilgilerini çekebilirsin.
-    # Şimdilik sadece email ve uid döndürelim.
-    return {"message": f"Bu korumalı bir alandır. Hoş geldin {email}!", "uid": uid, "email": email}
+@app.post("/todos")
+def create_todo(todo: TodoSchema, user = Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+
+    data = {
+        "title": todo.title,
+        "completed": todo.completed,
+        "user_id": user.id 
+    }
+    
+    try:
+        res = supabase.table("todos").insert(data).execute()
+        return {"message": "Todo eklendi", "id": res.data[0]['id']}
+    except Exception as e:
+        error_str = str(e)
+        if "could not find the table" in error_str.lower() or "pgrst205" in error_str.lower():
+            raise HTTPException(
+                status_code=500, 
+                detail="Todos tablosu bulunamadı. Lütfen Supabase Dashboard > SQL Editor'de supabase_todos_table.sql dosyasındaki SQL'i çalıştırın."
+            )
+        raise HTTPException(status_code=500, detail=f"Todo eklenemedi: {error_str}")
+
+@app.get("/todos")
+def get_todos(user = Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+
+    try:
+        res = supabase.table("todos").select("*").eq("user_id", user.id).execute()
+        return res.data if res.data else []
+    except Exception as e:
+        error_str = str(e)
+        
+        if "could not find the table" in error_str.lower() or "pgrst205" in error_str.lower():
+            raise HTTPException(
+                status_code=500, 
+                detail="Todos tablosu bulunamadı. Lütfen Supabase Dashboard > SQL Editor'de supabase_todos_table.sql dosyasındaki SQL'i çalıştırın."
+            )
+        
+        if "permission denied" in error_str.lower() or "policy" in error_str.lower():
+            raise HTTPException(
+                status_code=500,
+                detail="Row Level Security (RLS) politikası hatası. Lütfen Supabase Dashboard'da RLS politikalarını kontrol edin."
+            )
+        
+        raise HTTPException(status_code=500, detail=f"Todo'lar listelenemedi: {error_str}")
+
+@app.put("/todos/{todo_id}")
+def update_todo(todo_id: str, todo: TodoSchema, user = Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+    
+    data = {
+        "title": todo.title,
+        "completed": todo.completed
+    }
+
+    try:
+        res = supabase.table("todos").update(data).eq("id", todo_id).eq("user_id", user.id).execute()
+        
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Todo bulunamadı veya size ait değil.")
+        
+        return {"message": "Todo güncellendi", "id": todo_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Todo güncellenemedi: {str(e)}")
+
+@app.patch("/todos/{todo_id}")
+def toggle_todo(todo_id: str, user = Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+    
+    try:
+        current = supabase.table("todos").select("completed").eq("id", todo_id).eq("user_id", user.id).single().execute()
+        new_completed = not current.data['completed']
+        res = supabase.table("todos").update({"completed": new_completed}).eq("id", todo_id).eq("user_id", user.id).execute()
+
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Todo bulunamadı veya size ait değil.")
+
+        return {"message": "Todo durumu güncellendi", "id": todo_id, "completed": new_completed}
+    except Exception as e:
+        if "Postgrest API error" in str(e) and "rows returned" in str(e):
+            raise HTTPException(status_code=404, detail="Todo bulunamadı veya size ait değil.")
+        raise HTTPException(status_code=500, detail=f"Todo durumu güncellenemedi: {str(e)}")
 
 
-# Uvicorn ile çalıştırmak için (opsiyonel, terminalden de çalıştırılabilir)
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: str, user = Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase bağlantısı yok")
+    
+    try:
+        res = supabase.table("todos").delete().eq("id", todo_id).eq("user_id", user.id).execute()
+        
+        return {"message": "Todo silindi"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Todo silinemedi: {str(e)}")
+
+
+# Uvicorn
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
